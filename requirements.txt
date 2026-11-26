@@ -1,0 +1,13 @@
+# Runtime dependencies (Python 3.10+ required)
+# Versions are pinned to the set this project was tested with.
+# Review and update deliberately, and run `pip-audit -r requirements.txt` first.
+
+# AgentCore and Strands Agents
+bedrock-agentcore==1.19.0
+strands-agents==1.50.2
+
+# AWS SDK
+boto3==1.43.63
+
+# Configuration
+pyyaml==6.0.3

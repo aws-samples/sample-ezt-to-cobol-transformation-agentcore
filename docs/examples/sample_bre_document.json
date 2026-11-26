@@ -1,0 +1,331 @@
+{
+  "program_name": "PAYROLL",
+  "business_rules": [
+    {
+      "id": "BR001",
+      "name": "Calculate Regular Pay",
+      "description": "Calculates regular pay for hours worked up to 40 hours per week",
+      "purpose": "Compute base compensation for standard work hours",
+      "inputs": [
+        "HOURS-WORKED",
+        "HOURLY-RATE"
+      ],
+      "outputs": [
+        "REGULAR-PAY"
+      ],
+      "logic": "Multiply hours worked (up to 40) by the hourly rate to determine regular pay amount",
+      "conditions": [
+        "Hours worked must be <= 40",
+        "Hourly rate must be positive"
+      ],
+      "source_location": {
+        "line_start": 45,
+        "line_end": 62
+      }
+    },
+    {
+      "id": "BR002",
+      "name": "Calculate Overtime Pay",
+      "description": "Calculates overtime pay at 1.5x rate for hours exceeding 40 per week",
+      "purpose": "Compute premium compensation for overtime hours",
+      "inputs": [
+        "HOURS-WORKED",
+        "HOURLY-RATE"
+      ],
+      "outputs": [
+        "OVERTIME-PAY"
+      ],
+      "logic": "If hours worked exceed 40, calculate overtime hours (total - 40) and multiply by hourly rate times 1.5",
+      "conditions": [
+        "Hours worked must be > 40",
+        "Overtime rate is 1.5x base rate"
+      ],
+      "source_location": {
+        "line_start": 63,
+        "line_end": 85
+      }
+    },
+    {
+      "id": "BR003",
+      "name": "Validate Hours Worked",
+      "description": "Ensures hours worked is within acceptable range",
+      "purpose": "Prevent invalid time entries from being processed",
+      "inputs": [
+        "HOURS-WORKED"
+      ],
+      "outputs": [
+        "VALIDATION-FLAG"
+      ],
+      "logic": "Check if hours worked is between 0 and 80. Set validation flag to 'Y' if valid, 'N' if invalid",
+      "conditions": [
+        "Hours worked >= 0",
+        "Hours worked <= 80"
+      ],
+      "source_location": {
+        "line_start": 20,
+        "line_end": 35
+      }
+    },
+    {
+      "id": "BR004",
+      "name": "Apply Tax Withholding",
+      "description": "Calculates federal tax withholding based on gross pay and tax bracket",
+      "purpose": "Determine federal tax amount to withhold from employee pay",
+      "inputs": [
+        "GROSS-PAY",
+        "TAX-BRACKET"
+      ],
+      "outputs": [
+        "TAX-AMOUNT"
+      ],
+      "logic": "Apply tax percentage based on bracket: 10% for bracket 1, 15% for bracket 2, 22% for bracket 3, 24% for bracket 4",
+      "conditions": [
+        "Tax bracket must be 1-4",
+        "Gross pay must be positive"
+      ],
+      "source_location": {
+        "line_start": 120,
+        "line_end": 155
+      }
+    },
+    {
+      "id": "BR005",
+      "name": "Calculate Health Insurance Deduction",
+      "description": "Deducts health insurance premium if employee is enrolled",
+      "purpose": "Apply health insurance cost to employee paycheck",
+      "inputs": [
+        "INSURANCE-FLAG",
+        "INSURANCE-PLAN-TYPE"
+      ],
+      "outputs": [
+        "INSURANCE-DEDUCTION"
+      ],
+      "logic": "If insurance flag is 'Y', apply deduction: $150 for individual, $350 for family plan",
+      "conditions": [
+        "Insurance flag is 'Y' or 'N'",
+        "Plan type is 'I' (individual) or 'F' (family)"
+      ],
+      "source_location": {
+        "line_start": 156,
+        "line_end": 175
+      }
+    },
+    {
+      "id": "BR006",
+      "name": "Calculate 401k Contribution",
+      "description": "Calculates employee 401k contribution based on percentage",
+      "purpose": "Determine retirement savings deduction from paycheck",
+      "inputs": [
+        "GROSS-PAY",
+        "CONTRIBUTION-PERCENTAGE"
+      ],
+      "outputs": [
+        "RETIREMENT-CONTRIBUTION"
+      ],
+      "logic": "Multiply gross pay by contribution percentage (0-15%) to calculate 401k deduction",
+      "conditions": [
+        "Contribution percentage between 0% and 15%",
+        "Cannot exceed IRS annual limit"
+      ],
+      "source_location": {
+        "line_start": 176,
+        "line_end": 195
+      }
+    },
+    {
+      "id": "BR007",
+      "name": "Calculate Net Pay",
+      "description": "Computes final net pay after all deductions",
+      "purpose": "Determine actual amount to be paid to employee",
+      "inputs": [
+        "GROSS-PAY",
+        "TAX-AMOUNT",
+        "INSURANCE-DEDUCTION",
+        "RETIREMENT-CONTRIBUTION"
+      ],
+      "outputs": [
+        "NET-PAY"
+      ],
+      "logic": "Subtract all deductions (tax, insurance, 401k) from gross pay to calculate net pay",
+      "conditions": [
+        "Net pay must be >= 0",
+        "All deduction amounts must be valid"
+      ],
+      "source_location": {
+        "line_start": 196,
+        "line_end": 210
+      }
+    },
+    {
+      "id": "BR008",
+      "name": "Check Minimum Wage Compliance",
+      "description": "Ensures hourly rate meets federal minimum wage requirement",
+      "purpose": "Validate compliance with minimum wage laws",
+      "inputs": [
+        "HOURLY-RATE"
+      ],
+      "outputs": [
+        "COMPLIANCE-FLAG"
+      ],
+      "logic": "Compare hourly rate against federal minimum wage ($7.25). Set compliance flag to 'Y' if compliant, 'N' if not",
+      "conditions": [
+        "Hourly rate >= $7.25"
+      ],
+      "source_location": {
+        "line_start": 36,
+        "line_end": 44
+      }
+    },
+    {
+      "id": "BR009",
+      "name": "Accumulate Year-to-Date Totals",
+      "description": "Updates cumulative year-to-date pay and deduction totals",
+      "purpose": "Maintain running totals for tax reporting and employee records",
+      "inputs": [
+        "CURRENT-GROSS-PAY",
+        "CURRENT-TAX-AMOUNT",
+        "YTD-GROSS-PAY",
+        "YTD-TAX-AMOUNT"
+      ],
+      "outputs": [
+        "YTD-GROSS-PAY",
+        "YTD-TAX-AMOUNT"
+      ],
+      "logic": "Add current period amounts to year-to-date totals for gross pay and tax withholding",
+      "conditions": [
+        "YTD totals must not overflow",
+        "Current amounts must be valid"
+      ],
+      "source_location": {
+        "line_start": 211,
+        "line_end": 230
+      }
+    },
+    {
+      "id": "BR010",
+      "name": "Format Pay Stub Output",
+      "description": "Formats all pay information for printing on pay stub",
+      "purpose": "Present payroll information in readable format for employee",
+      "inputs": [
+        "EMPLOYEE-ID",
+        "EMPLOYEE-NAME",
+        "PAY-PERIOD",
+        "GROSS-PAY",
+        "NET-PAY",
+        "TAX-AMOUNT",
+        "INSURANCE-DEDUCTION",
+        "RETIREMENT-CONTRIBUTION"
+      ],
+      "outputs": [
+        "FORMATTED-PAY-STUB"
+      ],
+      "logic": "Format all pay components with proper decimal places, currency symbols, and alignment for printing",
+      "conditions": [
+        "All numeric values formatted to 2 decimal places",
+        "Employee ID must be 6 digits"
+      ],
+      "source_location": {
+        "line_start": 231,
+        "line_end": 265
+      }
+    }
+  ],
+  "data_mappings": [
+    {
+      "source_field": "R3",
+      "target_field": "HOURS-WORKED",
+      "transformation": "Convert binary register value to packed decimal format (COMP-3)",
+      "validation_rules": [
+        "Must be numeric",
+        "Range: 0-80",
+        "Precision: 2 decimal places"
+      ]
+    },
+    {
+      "source_field": "R4",
+      "target_field": "HOURLY-RATE",
+      "transformation": "Convert binary register value to decimal currency format with 2 decimal places",
+      "validation_rules": [
+        "Must be positive",
+        "Minimum: $7.25",
+        "Maximum: $999.99",
+        "Precision: 2 decimal places"
+      ]
+    },
+    {
+      "source_field": "R5",
+      "target_field": "TAX-BRACKET",
+      "transformation": "Direct mapping of integer value (1-4)",
+      "validation_rules": [
+        "Must be integer",
+        "Range: 1-4"
+      ]
+    },
+    {
+      "source_field": "R6",
+      "target_field": "INSURANCE-FLAG",
+      "transformation": "Convert binary flag (0/1) to character ('N'/'Y')",
+      "validation_rules": [
+        "Must be 'Y' or 'N'"
+      ]
+    },
+    {
+      "source_field": "R7",
+      "target_field": "CONTRIBUTION-PERCENTAGE",
+      "transformation": "Convert binary percentage value to decimal (0.00-0.15)",
+      "validation_rules": [
+        "Range: 0.00-0.15",
+        "Precision: 2 decimal places"
+      ]
+    },
+    {
+      "source_field": "R8",
+      "target_field": "GROSS-PAY",
+      "transformation": "Convert calculated binary value to packed decimal currency format",
+      "validation_rules": [
+        "Must be positive",
+        "Maximum: $99,999.99",
+        "Precision: 2 decimal places"
+      ]
+    },
+    {
+      "source_field": "R9",
+      "target_field": "NET-PAY",
+      "transformation": "Convert final calculated value to packed decimal currency format",
+      "validation_rules": [
+        "Must be >= 0",
+        "Must be <= GROSS-PAY",
+        "Precision: 2 decimal places"
+      ]
+    },
+    {
+      "source_field": "MEMORY[0x1000]",
+      "target_field": "EMPLOYEE-ID",
+      "transformation": "Extract 6-digit employee ID from memory location and format as alphanumeric",
+      "validation_rules": [
+        "Must be 6 digits",
+        "Must be numeric"
+      ]
+    },
+    {
+      "source_field": "MEMORY[0x1010]",
+      "target_field": "EMPLOYEE-NAME",
+      "transformation": "Extract 30-character employee name from memory and trim trailing spaces",
+      "validation_rules": [
+        "Maximum length: 30 characters",
+        "Must contain at least one alphabetic character"
+      ]
+    },
+    {
+      "source_field": "R10",
+      "target_field": "YTD-GROSS-PAY",
+      "transformation": "Accumulate year-to-date gross pay in packed decimal format",
+      "validation_rules": [
+        "Must be positive",
+        "Maximum: $999,999.99",
+        "Precision: 2 decimal places"
+      ]
+    }
+  ],
+  "summary": "Business Rules Extraction Summary:\n- Total Business Rules: 10\n- Total Data Mappings: 10\n- Key Rules: Calculate Regular Pay, Calculate Overtime Pay, Validate Hours Worked\n\nThis payroll program implements comprehensive employee compensation logic including:\n- Regular and overtime pay calculation\n- Tax withholding based on brackets\n- Health insurance deductions\n- 401k retirement contributions\n- Minimum wage compliance validation\n- Year-to-date accumulation\n- Pay stub formatting\n\nThe program processes employee time and rate information, applies all applicable deductions,\nand produces formatted pay stubs with detailed breakdowns of earnings and withholdings."
+}

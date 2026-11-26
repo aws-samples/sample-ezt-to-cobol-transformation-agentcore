@@ -1,0 +1,155 @@
+* ********************************************************************
+*  EASYTRIEVE PROGRAM: COMPLXRP
+*  PURPOSE: GENERATE MULTI-LEVEL SALES REPORT WITH SUBTOTALS
+*  DESCRIPTION: This program reads an employee sales file, sorts it
+*               by region and department, then produces a detailed
+*               sales report with department subtotals, region
+*               subtotals, and a grand total.
+* ********************************************************************
+*
+*  LIBRARY SECTION - Define Files and Working Storage
+*
+* *******************************************************************
+
+* --- Input File: Employee sales records, fixed-block 80 bytes,
+*     block size 8000 (100 records per block)
+FILE MAINFILE FB(80 8000)
+  REC-TYPE    1 1 A          * Record type indicator (pos 1, 1 byte, alpha)
+  EMP-DATA    2 79 A         * Full employee data area (pos 2, 79 bytes)
+  EMP-REC     EMP-DATA 1 4 N   * Employee number (numeric, 4 digits)
+  EMP-NAME    EMP-DATA 5 20 A  * Employee name (alpha, 20 chars)
+  DEPT-ID     EMP-DATA 25 3 A  * Department ID code (alpha, 3 chars)
+  REGION      EMP-DATA 28 2 A  * Region code (alpha, 2 chars)
+  SALES-AMT   EMP-DATA 30 7 P 2 * Sales amount (packed decimal, 7 bytes,
+*                                  2 decimal places - max value 9,999,999.99)
+
+* --- Detail File: Sales detail records, fixed 50-byte records
+*     Used as intermediate or secondary input
+FILE SLSDETL F 50
+  SLS-REG     1 2 A          * Sales region code
+  SLS-DEPT    3 3 A          * Sales department code
+  SLS-QTY     6 5 N          * Sales quantity (numeric, 5 digits)
+  SLS-VAL     11 9 P 2       * Sales value (packed decimal, 9 bytes,
+*                               2 decimal places)
+
+* --- Report File: Printer output, 132-character wide
+*     Standard mainframe print line width
+FILE REPORTPR PRINTER LINESIZE 132
+  RPT-LINE    1 132 A        * Full print line buffer
+
+* --- Working Storage Variables ---
+* These are in-memory fields not tied to any file
+
+DEFINE WS-TOTAL-SALES   W 11 P 2 VALUE 0   * Running total of all sales
+*                                             (packed, 11 bytes, 2 decimals)
+DEFINE WS-GRAND-TOTAL   W 13 P 2 VALUE 0   * Grand total accumulator
+*                                             (packed, 13 bytes for larger sums)
+DEFINE WS-RECORD-COUNT  W 5 N VALUE 0      * Counter for records processed
+DEFINE WS-SUB-TOTAL     W 11 P 2 VALUE 0   * Department-level subtotal
+*                                             (reset on each dept break)
+
+* ********************************************************************
+*  ACTIVITY SECTION
+* ********************************************************************
+
+* ********************************************************************
+*  JOB 1: Sort the main file by Region and Department
+*  - Reads MAINFILE and writes sorted output to SRTOUT
+*  - Primary sort key: REGION (ascending)
+*  - Secondary sort key: DEPT-ID (ascending)
+*  - This ensures the report groups data correctly
+* *******************************************************************
+SORT MAINFILE TO SRTOUT USING REGION DEPT-ID
+
+* ********************************************************************
+*  JOB 2: Process sorted file and generate report
+*  - Reads the sorted output from JOB 1
+*  - Accumulates counts and totals
+*  - Handles control breaks at department and region levels
+*  - Prints detail lines to the sales report
+* *******************************************************************
+JOB INPUT SRTOUT
+
+  * Increment record counter for each record read
+  WS-RECORD-COUNT = WS-RECORD-COUNT + 1
+
+  * Accumulate running sales total across all records
+  WS-TOTAL-SALES = WS-TOTAL-SALES + SALES-AMT
+
+  * Define control break hierarchy: Region (major), Dept (minor)
+  CONTROL REGION DEPT-ID
+
+  * Before a department break occurs, reset the subtotal
+  * so the next department group starts fresh
+  BEFORE-BREAK DEPT-ID
+    WS-SUB-TOTAL = 0
+  END-BEFORE
+
+  * Send each detail record to the report for printing
+  PRINT SALES-RPT
+
+* ********************************************************************
+*  REPORT DEFINITION
+*  - Defines the layout and behavior of the sales report
+*  - PAGESIZE 60: 60 lines per page before page break
+*  - LINESIZE 132: Standard mainframe wide print format
+* *******************************************************************
+REPORT SALES-RPT PAGESIZE 60 LINESIZE 132
+
+  * Sort order for the report output
+  SEQUENCE REGION DEPT-ID
+
+  * Control break fields - triggers subtotals when values change
+  CONTROL REGION DEPT-ID
+
+  * Report title lines printed at top of each page
+  TITLE 01 'MONTHLY SALES REPORT - REGIONAL'
+  TITLE 02 '==============================='
+
+  * Custom column headings (override default field names)
+  HEADING SALES-AMT '  SALES AMOUNT'
+  HEADING EMP-NAME 'EMPLOYEE NAME'
+
+  * Detail line: prints one line per employee record
+  * MASK formats the sales amount with commas and decimals
+  * e.g., 1234567.89 displays as 1,234,567.89
+  LINE 01 REGION DEPT-ID EMP-NAME SALES-AMT(MASK 'Z,ZZZ,ZZ9.99')
+
+  * --- Department Control Break ---
+  * Fires when DEPT-ID value changes within a region
+
+  CONTROL DEPT-ID
+
+  * Before the department changes, skip a line for spacing
+  BEFORE-BREAK DEPT-ID
+    SKIP 1
+  END-BEFORE
+
+  * After the department changes, print department subtotal
+  * SUM(SALES-AMT) automatically totals all SALES-AMT values
+  * within the department group
+  AFTER-BREAK DEPT-ID
+    SKIP 1
+    LINE 01 'DEPARTMENT ' DEPT-ID ' TOTAL:' +
+      SUM(SALES-AMT)(MASK 'Z,ZZZ,ZZ9.99')
+  END-AFTER
+
+  * --- Region Control Break ---
+  * Fires when REGION value changes (major break)
+  * Prints region-level subtotal after all departments in
+  * that region have been processed
+  AFTER-BREAK REGION
+    SKIP 1
+    LINE 01 '*** REGION ' REGION ' TOTAL: ' +
+      SUM(SALES-AMT)(MASK 'Z,ZZZ,ZZ9.99')
+    SKIP 2                   * Extra spacing between regions
+  END-AFTER
+
+  * --- Final Total ---
+  * Prints once at the very end of the report after all
+  * records have been processed. Shows grand total of all sales.
+  FINAL
+    SKIP 2
+    LINE 01 'GRAND TOTAL SALES: ' +
+      SUM(SALES-AMT)(MASK 'Z,ZZZ,ZZ9.99')
+  END-FINAL

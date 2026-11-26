@@ -1,0 +1,24 @@
+llm:
+  provider: "aws_bedrock"
+  model: "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+  max_tokens: 8192
+  temperature: 0.0
+  region: "us-east-1"
+
+# BRE-based Pipeline Services
+services:
+  bre_extractor:
+    name: "bre_extractor"
+    description: "Business Rules Extraction from Assembly code"
+  spec_generator:
+    name: "spec_generator"
+    description: "Functional Specification generation from BRE"
+  bre_cobol_generator:
+    name: "bre_cobol_generator"
+    description: "COBOL code generation from BRE and specifications"
+  validator:
+    name: "code_validator"
+    description: "Multi-level code validation and equivalence checking"
+  analyzer:
+    name: "feedback_analyzer"
+    description: "Analysis and feedback generation"

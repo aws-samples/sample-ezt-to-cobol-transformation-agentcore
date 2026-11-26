@@ -1,0 +1,26 @@
+# Local environment and generated deployment metadata
+.env
+.env.*
+config/*.env
+.bedrock_agentcore.yaml
+
+# Generated pipeline artifacts and local environments
+outputs/
+agentcore_out/
+venv/
+venv_agentcore/
+.venv/
+
+# Python tooling artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+
+# Local documents and audit output
+*.docx
+scan-report.json
+pip-audit-report.json
+trivy-report.json
